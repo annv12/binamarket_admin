@@ -10,6 +10,22 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  async function handleDeleteQuestion(id: string) {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      const data = await res.json();
+      if (data.message) {
+        alert("Delete faild");
+        return;
+      }
+      await fetchQuestions();
+    } catch (err) {
+      alert("Failed to delete question");
+    }
+  }
 
   async function fetchQuestions() {
     setLoading(true);
@@ -50,7 +66,9 @@ export default function Page() {
       {loading && <p>Loading questions...</p>}
       {error && <p className="text-red-600">Error: {error}</p>}
 
-      {!loading && !error && <QuestionList questions={questions} />}
+      {!loading && !error && (
+        <QuestionList questions={questions} onDelete={handleDeleteQuestion} />
+      )}
 
       {/* Modal */}
       {showModal && (

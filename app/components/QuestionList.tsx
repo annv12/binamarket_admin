@@ -1,16 +1,27 @@
 "use client";
 
-import {  Question } from "../types";
+import React from "react";
+import { useRouter } from "next/navigation";
+import { Question } from "../types";
 
 interface Props {
   questions: Question[];
+  onDelete: (id: string) => Promise<void>;
 }
 
-export default function QuestionList({ questions }: Props) {
+export default function QuestionList({ questions, onDelete }: Props) {
+  const router = useRouter();
+
   if (questions.length === 0) {
-    return (
-      <div className="text-gray-400 text-center py-10">No questions found</div>
-    );
+    return <p className="text-gray-400">No questions found</p>;
+  }
+
+  async function handleDelete(e: React.MouseEvent, id: string) {
+    e.stopPropagation(); // ❗ tránh click card
+    const ok = confirm("Are you sure you want to delete this question?");
+    console.log("🚀 ~ handleDelete ~ ok:", ok)
+    if (!ok) return;
+    await onDelete(id);
   }
 
   return (
@@ -18,33 +29,33 @@ export default function QuestionList({ questions }: Props) {
       {questions.map((q) => (
         <div
           key={q.id}
-          className="bg-white rounded-xl border border-gray-200 px-6 py-5 shadow-sm hover:shadow-md transition"
+          onClick={() => router.push(`/questions/${q.id}`)}
+          className="bg-white rounded-xl border border-gray-200 px-6 py-5 shadow-sm hover:shadow-md transition cursor-pointer"
         >
-          {/* Top row */}
-          <div className="flex items-start justify-between">
+          {/* HEADER */}
+          <div className="flex justify-between items-start">
             <div>
-              {/* Question */}
               <h3 className="text-lg font-semibold text-gray-900">
                 {q.description}
               </h3>
-
-              {/* Question name */}
-              {/* <p className="text-sm text-gray-500 mt-1">
-                {q.description}
-              </p> */}
+              {/* <p className="text-sm text-gray-500 mt-1">{q.questionName}</p> */}
             </div>
 
-            {/* Category badge */}
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-              {q.category.join(",")}
-            </span>
+            <button
+              onClick={(e) => handleDelete(e, q.id)}
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
+            >
+              Delete
+            </button>
           </div>
+
+          {/* TAGS */}
           {q.tags?.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
               {q.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200"
+                  className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-700 border"
                 >
                   #{tag}
                 </span>
@@ -52,15 +63,10 @@ export default function QuestionList({ questions }: Props) {
             </div>
           )}
 
-          {/* Divider */}
-          <div className="my-4 border-t border-gray-100" />
-
-          {/* Bottom row */}
-          <div className="flex items-center justify-between text-sm">
-            <div className="text-gray-500">⏰ End time</div>
-            <div className="font-medium text-gray-700">
-              {formatDateTime(q.timeEnd)}
-            </div>
+          {/* FOOTER */}
+          <div className="mt-4 flex justify-between text-sm text-gray-500">
+            <span>Category: {q.category}</span>
+            <span>⏰ {formatDateTime(q.timeEnd)}</span>
           </div>
         </div>
       ))}
@@ -69,6 +75,5 @@ export default function QuestionList({ questions }: Props) {
 }
 
 function formatDateTime(value: string) {
-  const d = new Date(value);
-  return d.toLocaleString();
+  return new Date(value).toLocaleString();
 }
