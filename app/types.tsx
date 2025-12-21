@@ -12,6 +12,7 @@ export interface Question {
   eps: string;
   logo: File | null;
   tags: string;
+  volume: number;
   answers: Answer[];
 }
 export interface Answer {
@@ -26,6 +27,7 @@ export interface Answer {
   outcome: string;
   no: number;
   m: number;
+  volume: number;
 }
 
 export interface Errors {
@@ -39,6 +41,7 @@ export interface Errors {
   eps?: string;
   priceCheck?: string;
   logo?: string;
+  volume?: string;
   answers?: {
     [index: number]: ErrorAnswer;
   };
@@ -51,6 +54,7 @@ export interface ErrorAnswer {
   no?: string;
   m?: string;
   priceCheck?: string;
+  volume?: string;
 }
 export type Category =
   | "CRYPTO"
@@ -86,6 +90,7 @@ export interface AnswerFormType {
   no: number;
   m: number;
   priceCheck: number;
+  volume: number;
 }
 export type ModalState =
   | { open: false }

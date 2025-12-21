@@ -6,6 +6,7 @@ import ImageUpload from "./ImageUpload";
 import {
   AnswerFormType,
   Category,
+  ErrorAnswer,
   Errors,
   MarketType,
   Question,
@@ -31,6 +32,7 @@ interface QuestionData {
   tags: string;
   logo: File | null;
   logoUrl?: string;
+  volume: number;
 }
 
 export default function QuestionForm({
@@ -52,6 +54,7 @@ export default function QuestionForm({
     tags: "",
     logo: null,
     logoUrl: "",
+    volume: 0,
   });
   const [answers, setAnswers] = useState<AnswerFormType[]>([]);
   const [errors, setErrors] = useState<Errors>({});
@@ -72,6 +75,7 @@ export default function QuestionForm({
         tags: initialData.tags,
         logo: null,
         logoUrl: initialData.logoUrl,
+        volume: initialData.volume,
       });
 
       setAnswers(
@@ -85,6 +89,7 @@ export default function QuestionForm({
           no: a.no,
           m: a.m,
           priceCheck: a.priceCheck || 0,
+          volume: a.volume,
         }))
       );
     }
@@ -109,6 +114,7 @@ export default function QuestionForm({
         no: 0,
         m: 0,
         priceCheck: 0,
+        volume: 0,
       },
     ]);
   }
@@ -122,7 +128,11 @@ export default function QuestionForm({
     });
   }
 
-  function updateAnswer(idx: number, field: keyof AnswerFormType, value: any) {
+  function updateAnswer<K extends keyof AnswerFormType>(
+    idx: number,
+    field: K,
+    value: AnswerFormType[K]
+  ) {
     const copy = [...answers];
     copy[idx] = { ...copy[idx], [field]: value };
     setAnswers(copy);
@@ -139,20 +149,24 @@ export default function QuestionForm({
       newErrors.ruleMarket = "Rule Market is required";
     if (!questionData.logo && !questionData.logoUrl)
       newErrors.logo = "Logo required";
+    if (questionData.volume < 0) newErrors.volume = "Volume must >= 0";
 
     if (questionData.category.includes("EARNINGS")) {
-      if (!questionData.eps.trim() || questionData.eps == '0') newErrors.eps = "EPS required";
+      if (!questionData.eps.trim() || questionData.eps == "0")
+        newErrors.eps = "EPS required";
       if (!questionData.symbol.trim()) newErrors.symbol = "Symbol required";
     }
 
     const ansErrors: typeof newErrors.answers = {};
     answers.forEach((a, i) => {
-      const e: any = {};
+      const e: ErrorAnswer = {};
       if (!a.answer.trim()) e.answer = "Answer required";
       if (!a.answerName.trim()) e.answerName = "Answer name required";
       if (a.yes <= 0) e.yes = "'Yes' must > 0";
       if (a.no <= 0) e.no = "'No' must > 0";
       if (a.m <= 0) e.m = "'M' must > 0";
+
+      if (a.volume < 0) e.volume = "Volume must >= 0";
       if (a.priceCheck && a.priceCheck <= 0)
         e.priceCheck = "Price check must > 0";
       if (Object.keys(e).length > 0) ansErrors[i] = e;
@@ -160,7 +174,6 @@ export default function QuestionForm({
     if (Object.keys(ansErrors).length > 0) newErrors.answers = ansErrors;
 
     setErrors(newErrors);
-    console.log("🚀 ~ validate ~ newErrors:", newErrors);
     return Object.keys(newErrors).length === 0;
   }
 
@@ -192,14 +205,17 @@ export default function QuestionForm({
       fd.append(
         "answers",
         JSON.stringify(
-          answers.map(({ answer, answerName, yes, no, m, priceCheck }) => ({
-            answer: answer.trim(),
-            answerName: answerName.trim(),
-            yes,
-            no,
-            m,
-            priceCheck,
-          }))
+          answers.map(
+            ({ answer, answerName, yes, no, m, priceCheck, volume }) => ({
+              answer: answer.trim(),
+              answerName: answerName.trim(),
+              yes,
+              no,
+              m,
+              priceCheck,
+              volume,
+            })
+          )
         )
       );
       answers.forEach((a) => a.logo && fd.append("answerLogos", a.logo));
@@ -214,7 +230,6 @@ export default function QuestionForm({
 
       if (!res.ok) throw new Error("Network response was not ok");
       const data = await res.json();
-      console.log("🚀 ~ submit ~ data:", data);
       if (data?.errors && Object.values(data?.errors)?.length > 0) {
         setErrors(data.errors);
         alert(data.errors.error || "Error submitting");
@@ -369,6 +384,24 @@ export default function QuestionForm({
             <p className="text-red-600 text-sm mt-1">{errors.questionName}</p>
           )}
         </div>
+
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">Volume</label>
+          <input
+            type="number"
+            value={questionData.volume}
+            onChange={(e) => updateField("volume", Number(e.target.value))}
+            className={`w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 text-gray-700 ${
+              errors?.volume
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-green-500"
+            }`}
+          />
+          {errors?.volume && (
+            <p className="text-red-600 text-sm mt-1">{errors.volume}</p>
+          )}
+        </div>
+
         <div>
           <label
             htmlFor="symbol"

@@ -27,9 +27,13 @@ export default function EditAnswerModal({
     priceCheck: answer.priceCheck || 0,
     logo: null,
     logoUrl: answer.logoUrl || "",
+    volume: answer.volume || 0,
   });
 
-  const handleChange = (field: keyof AnswerFormType, value: any) => {
+  const handleChange = <K extends keyof AnswerFormType>(
+    field: keyof AnswerFormType,
+    value: AnswerFormType[K]
+  ) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -39,12 +43,13 @@ export default function EditAnswerModal({
   const handleSubmit = async () => {
     try {
       setSaving(true);
-      const e: any = {};
+      const e: ErrorAnswer = {};
       if (!answer.answer.trim()) e.answer = "Answer required";
       if (!answer.answerName.trim()) e.answerName = "Answer name required";
       if (answer.yes <= 0) e.yes = "'Yes' must > 0";
       if (answer.no <= 0) e.no = "'No' must > 0";
       if (answer.m <= 0) e.m = "'M' must > 0";
+      if (answer.volume <= 0) e.volume= "volume must >= 0";
       if (answer.priceCheck && answer.priceCheck <= 0)
         e.priceCheck = "Price check must > 0";
       if (Object.keys(e).length > 0) {
@@ -63,6 +68,7 @@ export default function EditAnswerModal({
           no: form.no,
           m: form.m,
           priceCheck: form.priceCheck,
+          volume: form.volume,
         })
       );
       // }
@@ -83,7 +89,6 @@ export default function EditAnswerModal({
         throw new Error("Update failed");
       }
       const data = await res.json();
-      console.log("🚀 ~ handleSubmit ~ data:", data);
       if (data.errors) {
         setError(data.errors);
         alert("Submit faild");

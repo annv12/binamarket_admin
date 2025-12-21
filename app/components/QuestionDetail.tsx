@@ -15,7 +15,7 @@ interface Props {
 
 type ModalState =
   | { open: false }
-  | { open: true; mode: "create" | "edit"; data?: any };
+  | { open: true; mode: "create" | "edit"; data?: Question };
 
 export default function QuestionDetailClient({ id }: Props) {
   const [question, setQuestion] = useState<Question | null>(null);
@@ -39,8 +39,10 @@ export default function QuestionDetailClient({ id }: Props) {
         );
         const data = await res.json();
         setQuestion(data.data);
-      } catch (error: any) {
-        if (error.name === "AbortError") return;
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
         console.log("🚀 ~ fetchQuestion ~ error:", error);
       } finally {
         setLoading(false);
@@ -105,6 +107,7 @@ export default function QuestionDetailClient({ id }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 text-sm">
             <Info label="Category" value={question.category.join(", ")} />
             <Info label="Sub category" value={question.subCategory} />
+            <Info label="Volume" value={question.volume.toString()} />
             <Info label="Symbol" value={question.symbol} />
             <Info label="Market type" value={question.marketType} />
             <Info label="EPS" value={question.eps} />
@@ -116,14 +119,17 @@ export default function QuestionDetailClient({ id }: Props) {
 
           {/* TAGS */}
           <div className="flex flex-wrap gap-2 mt-4">
-            {question.tags.split(", ").map((tag: string) => (
-              <span
-                key={tag}
-                className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700"
-              >
-                #{tag}
-              </span>
-            ))}
+            {question.tags
+              .split(", ")
+              .filter(Boolean)
+              .map((tag: string) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700"
+                >
+                  #{tag}
+                </span>
+              ))}
           </div>
 
           {/* RULE */}
@@ -164,7 +170,11 @@ export default function QuestionDetailClient({ id }: Props) {
                     </div>
                     {!answer.resolved && (
                       <div>
-                        {answer.priceCheck && (
+                        <div className="flex flex-row gap-4 mt-1 text-sm">
+                          <div>Volume:</div>
+                          <div>{answer.volume}</div>
+                        </div>
+                        {!!answer.priceCheck && (
                           <div className="flex flex-row gap-4 mt-1 text-sm">
                             <div>Price check:</div>
                             <div>{answer.priceCheck}</div>
