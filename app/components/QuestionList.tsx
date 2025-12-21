@@ -19,11 +19,9 @@ export default function QuestionList({ questions, onDelete }: Props) {
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation(); // ❗ tránh click card
     const ok = confirm("Are you sure you want to delete this question?");
-    console.log("🚀 ~ handleDelete ~ ok:", ok)
     if (!ok) return;
     await onDelete(id);
   }
-
   return (
     <div className="space-y-4">
       {questions.map((q) => (
@@ -36,7 +34,7 @@ export default function QuestionList({ questions, onDelete }: Props) {
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                {q.description}
+                {q.questionName}
               </h3>
               {/* <p className="text-sm text-gray-500 mt-1">{q.questionName}</p> */}
             </div>
@@ -50,9 +48,9 @@ export default function QuestionList({ questions, onDelete }: Props) {
           </div>
 
           {/* TAGS */}
-          {q.tags?.length > 0 && (
+          {q.tags?.split(", ").length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
-              {q.tags.map((tag, idx) => (
+              {q.tags.split(", ").filter(Boolean).map((tag, idx) => (
                 <span
                   key={idx}
                   className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-700 border"
@@ -65,7 +63,7 @@ export default function QuestionList({ questions, onDelete }: Props) {
 
           {/* FOOTER */}
           <div className="mt-4 flex justify-between text-sm text-gray-500">
-            <span>Category: {q.category}</span>
+            <span>Category: {q.category.join(", ")}</span>
             <span>⏰ {formatDateTime(q.timeEnd)}</span>
           </div>
         </div>

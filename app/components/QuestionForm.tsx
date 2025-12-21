@@ -1,43 +1,101 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AnswerForm from "./AnswerForm";
 import ImageUpload from "./ImageUpload";
-import { AnswerFormType, Category, Errors, MarketType } from "../types";
+import {
+  AnswerFormType,
+  Category,
+  Errors,
+  MarketType,
+  Question,
+} from "../types";
 
 interface QuestionFormProps {
+  initialData?: Question; // dữ liệu khi edit
+  mode?: "create" | "edit";
   onCreated?: () => void;
   onCancel?: () => void;
 }
 
+interface QuestionData {
+  category: Category[];
+  questionName: string;
+  ruleMarket: string;
+  timeEnd: string;
+  marketType: MarketType;
+  symbol: string;
+  eps: string;
+  subCategory: string;
+  groupQuestion: string;
+  tags: string;
+  logo: File | null;
+  logoUrl?: string;
+}
+
 export default function QuestionForm({
+  initialData,
+  mode = "create",
   onCreated,
-  onCancel,
 }: QuestionFormProps) {
   const [loading, setLoading] = useState(false);
-  const [category, setCategory] = useState<Category>("CRYPTO");
-  const [subCategory, setSubCategory] = useState<string>("");
-  const [questionName, setQuestionName] = useState("");
-  const [ruleMarket, setRuleMarket] = useState("");
-  const [timeEnd, setTimeEnd] = useState("");
-  const [marketType, setMarketType] = useState<MarketType>("ALL");
-  const [symbol, setSymbol] = useState("");
-  const [groupQuestion, setGroupQuestion] = useState("");
-  const [logo, setLogo] = useState<File | null>(null);
-  const [eps, setEps] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
-  const [answers, setAnswers] = useState<AnswerFormType[]>([
-    {
-      answer: "",
-      answerName: "",
-      logo: null,
-      yes: 0,
-      no: 0,
-      m: 0,
-      priceCheck: 0,
-    },
-  ]);
+  const [questionData, setQuestionData] = useState<QuestionData>({
+    category: ["CRYPTO"],
+    questionName: "",
+    ruleMarket: "",
+    timeEnd: "",
+    marketType: "ALL",
+    symbol: "",
+    eps: "",
+    subCategory: "",
+    groupQuestion: "",
+    tags: "",
+    logo: null,
+    logoUrl: "",
+  });
+  const [answers, setAnswers] = useState<AnswerFormType[]>([]);
   const [errors, setErrors] = useState<Errors>({});
+
+  // Load initial data khi edit
+  useEffect(() => {
+    if (mode === "edit" && initialData) {
+      setQuestionData({
+        category: initialData.category as Category[],
+        questionName: initialData.questionName || "",
+        ruleMarket: initialData.ruleMarket || "",
+        timeEnd: initialData.timeEnd || "",
+        marketType: (initialData.marketType as MarketType) || "ALL",
+        symbol: initialData.symbol || "",
+        eps: initialData.eps || "",
+        subCategory: initialData.subCategory || "",
+        groupQuestion: initialData.groupQuestion || "",
+        tags: initialData.tags,
+        logo: null,
+        logoUrl: initialData.logoUrl,
+      });
+
+      setAnswers(
+        initialData.answers.map((a) => ({
+          id: a.id,
+          answer: a.answer,
+          answerName: a.answerName,
+          logo: null,
+          logoUrl: a.logoUrl,
+          yes: a.yes,
+          no: a.no,
+          m: a.m,
+          priceCheck: a.priceCheck || 0,
+        }))
+      );
+    }
+  }, [mode, initialData]);
+
+  function updateField<K extends keyof QuestionData>(
+    key: K,
+    value: QuestionData[K]
+  ) {
+    setQuestionData((prev) => ({ ...prev, [key]: value }));
+  }
 
   function addAnswer() {
     setAnswers([
@@ -46,6 +104,7 @@ export default function QuestionForm({
         answer: "",
         answerName: "",
         logo: null,
+        logoUrl: undefined,
         yes: 0,
         no: 0,
         m: 0,
@@ -63,134 +122,114 @@ export default function QuestionForm({
     });
   }
 
-  function updateAnswer(
-    idx: number,
-    field: keyof AnswerFormType,
-    value: string
-  ) {
+  function updateAnswer(idx: number, field: keyof AnswerFormType, value: any) {
     const copy = [...answers];
-    copy[idx] = {
-      ...copy[idx],
-      [field]: value,
-    };
+    copy[idx] = { ...copy[idx], [field]: value };
     setAnswers(copy);
   }
 
   function validate(): boolean {
     const newErrors: Errors = {};
-    if (!category) newErrors.category = "Category is required";
-    // if (!symbol.trim()) newErrors.symbol = "Symbol is required";
-    if (!timeEnd.trim()) newErrors.timeEnd = "Time end is required";
-    if (!ruleMarket.trim()) newErrors.ruleMarket = "Rule Market is required";
-    // if (!tagsInput.trim()) newErrors.tags = "At least one tag is required";
-    if (!logo) newErrors.logo = "Logo question is required";
-    if (category == "EARNINGS") {
-      if (!eps.trim()) newErrors.eps = "Eps is required";
-      if (!symbol) newErrors.symbol = "Symbol is required";
+    if (!questionData.category) newErrors.category = "Category is required";
+    if (!questionData.questionName.trim())
+      newErrors.questionName = "Question name is required";
+    if (!questionData.timeEnd.trim())
+      newErrors.timeEnd = "Time end is required";
+    if (!questionData.ruleMarket.trim())
+      newErrors.ruleMarket = "Rule Market is required";
+    if (!questionData.logo && !questionData.logoUrl)
+      newErrors.logo = "Logo required";
+
+    if (questionData.category.includes("EARNINGS")) {
+      if (!questionData.eps.trim() || questionData.eps == '0') newErrors.eps = "EPS required";
+      if (!questionData.symbol.trim()) newErrors.symbol = "Symbol required";
     }
-    if (answers.length < 1) {
-      newErrors.answers = { 0: { answer: "At least 1 answers required" } };
-    } else {
-      const error: typeof newErrors.answers = {};
-      answers.forEach((a, i) => {
-        const answerErr: any = {};
-        if (!a.answer.trim()) answerErr.answer = "Answer is required";
-        if (!a.answerName.trim())
-          answerErr.answerName = "Answer Name is required";
-        if (a.yes <= 0) answerErr.yes = "'Yes' must be > 0";
-        if (a.no <= 0) answerErr.no = "'No' must be > 0";
-        if (a.m <= 0) answerErr.m = "'M' must be > 0";
-        if (a.priceCheck && a.priceCheck <= 0)
-          answerErr.priceCheck = "Price check must be > 0";
-        if (Object.keys(answerErr).length > 0) error[i] = answerErr;
-      });
-      if (Object.values(error).length > 0) newErrors.answers = error;
-    }
+
+    const ansErrors: typeof newErrors.answers = {};
+    answers.forEach((a, i) => {
+      const e: any = {};
+      if (!a.answer.trim()) e.answer = "Answer required";
+      if (!a.answerName.trim()) e.answerName = "Answer name required";
+      if (a.yes <= 0) e.yes = "'Yes' must > 0";
+      if (a.no <= 0) e.no = "'No' must > 0";
+      if (a.m <= 0) e.m = "'M' must > 0";
+      if (a.priceCheck && a.priceCheck <= 0)
+        e.priceCheck = "Price check must > 0";
+      if (Object.keys(e).length > 0) ansErrors[i] = e;
+    });
+    if (Object.keys(ansErrors).length > 0) newErrors.answers = ansErrors;
 
     setErrors(newErrors);
-
+    console.log("🚀 ~ validate ~ newErrors:", newErrors);
     return Object.keys(newErrors).length === 0;
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-    const tags = tagsInput
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
 
     setLoading(true);
-    const fd = new FormData();
-    fd.append("category", category);
-    fd.append("subCategory", subCategory);
-    fd.append("question", questionName);
-    fd.append("ruleMarket", ruleMarket);
-    fd.append("timeEnd", timeEnd);
-    fd.append("marketType", marketType);
-    fd.append("symbol", symbol);
-    fd.append("groupQuestion", groupQuestion);
-    fd.append("eps", eps);
-    fd.append("tags", JSON.stringify(tags));
-    if (logo) fd.append("logo", logo);
-
-    fd.append(
-      "answers",
-      JSON.stringify(
-        answers.map(({ answer, answerName, yes, no, m }) => ({
-          answer,
-          answerName,
-          yes,
-          no,
-          m,
-        }))
-      )
-    );
-
-    answers.forEach((a) => a.logo && fd.append("answerLogos", a.logo));
-
     try {
-      const res = await fetch(process.env.NEXT_PUBLIC_API_URL || "", {
-        method: "POST",
-        body: fd,
+      const fd = new FormData();
+      Object.entries(questionData).forEach(([k, v]) => {
+        if (k === "logo" && v) fd.append("logo", v as File);
+        else if (k == "subCategory") {
+          const data = v as string;
+          fd.append(
+            k,
+            data
+              .trim()
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean)
+              .join(", ") as string
+          );
+        } else if (k !== "logo") {
+          fd.append(k, v.toString().trim() as string);
+        }
       });
+      fd.append("questionId", initialData?.id || "");
+      fd.append(
+        "answers",
+        JSON.stringify(
+          answers.map(({ answer, answerName, yes, no, m, priceCheck }) => ({
+            answer: answer.trim(),
+            answerName: answerName.trim(),
+            yes,
+            no,
+            m,
+            priceCheck,
+          }))
+        )
+      );
+      answers.forEach((a) => a.logo && fd.append("answerLogos", a.logo));
+
+      const res = await fetch(
+        process.env.NEXT_PUBLIC_API_URL + "/questions" || "",
+        {
+          method: mode === "edit" ? "PUT" : "POST",
+          body: fd,
+        }
+      );
 
       if (!res.ok) throw new Error("Network response was not ok");
       const data = await res.json();
-      if (Object.values(data.errors).length > 0) {
+      console.log("🚀 ~ submit ~ data:", data);
+      if (data?.errors && Object.values(data?.errors)?.length > 0) {
         setErrors(data.errors);
-        alert("Create error!");
+        alert(data.errors.error || "Error submitting");
+        return;
+      }
+      if (data.error) {
+        alert(data.error);
         return;
       }
 
-      setCategory("CRYPTO");
-      setMarketType("ALL");
-      setSubCategory("");
-      setQuestionName("");
-      setSymbol("");
-      setTimeEnd("");
-      setRuleMarket("");
-      setTagsInput("");
-      setGroupQuestion("");
-      setEps("");
-      setLogo(null);
-      setAnswers([
-        {
-          answer: "",
-          answerName: "",
-          logo: null,
-          yes: 0,
-          no: 0,
-          m: 0,
-          priceCheck: 0,
-        },
-      ]);
-      setErrors({});
-      alert("Created!");
-
+      alert(mode === "edit" ? "Updated!" : "Created!");
       if (onCreated) onCreated();
-    } catch {
-      alert("Error submitting");
+    } catch (err) {
+      console.error(err);
+      alert("Submit error");
     } finally {
       setLoading(false);
     }
@@ -198,45 +237,59 @@ export default function QuestionForm({
 
   return (
     <form onSubmit={submit} className="space-y-6 max-h-[80vh] overflow-auto">
-      <div className="max-w-3xl mx-auto p-8 bg-white rounded-xl shadow-md space-y-6">
-        {/* <h2 className="text-2xl font-bold text-gray-800">Create Question</h2> */}
+      <div className="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-md space-y-6">
         {errors.error && (
           <p className="text-red-600 text-sm mt-1">{errors.error}</p>
         )}
+        {/* Category */}
         <div>
           <label
-            htmlFor="category"
             className="block mb-1 font-medium text-gray-700"
+            htmlFor="category"
           >
             Category
           </label>
           <select
             id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value as Category)}
+            value={questionData.category}
+            multiple
+            onChange={(e) => {
+              const selectedValues = Array.from(
+                e.target.selectedOptions,
+                (option) => option.value as Category
+              );
+              updateField("category", selectedValues);
+            }}
             className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 ${
               errors.category
                 ? "border-red-500 focus:ring-red-500"
                 : "border-gray-300 focus:ring-green-500"
             }`}
           >
-            <option value="POLITICS">POLITICS</option>
-            <option value="SPORTS">SPORTS</option>
-            <option value="FINANCE">FINANCE</option>
-            <option value="CRYPTO">CRYPTO</option>
-            <option value="GEOPOLITICS">GEOPOLITICS</option>
-            <option value="EARNINGS">EARNINGS</option>
-            <option value="TECH">TECH</option>
-            <option value="CULTURE">CULTURE</option>
-            <option value="WORLD">WORLD</option>
-            <option value="ECONOMY">ECONOMY</option>
-            <option value="ELECTIONS">ELECTIONS</option>
-            <option value="MENTIONS">MENTIONS</option>
+            {[
+              "POLITICS",
+              "SPORTS",
+              "FINANCE",
+              "CRYPTO",
+              "GEOPOLITICS",
+              "EARNINGS",
+              "TECH",
+              "CULTURE",
+              "WORLD",
+              "ECONOMY",
+              "ELECTIONS",
+              "MENTIONS",
+            ].map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
           {errors.category && (
             <p className="text-red-600 text-sm mt-1">{errors.category}</p>
           )}
         </div>
+
         <div>
           <label
             htmlFor="sub_category"
@@ -248,8 +301,8 @@ export default function QuestionForm({
             id="sub_category"
             type="text"
             placeholder="Sub category"
-            value={subCategory}
-            onChange={(e) => setSubCategory(e.target.value)}
+            value={questionData.subCategory}
+            onChange={(e) => updateField("subCategory", e.target.value)}
             className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 border-gray-300 focus:ring-green-500`}
           />
         </div>
@@ -262,8 +315,10 @@ export default function QuestionForm({
           </label>
           <select
             id="market_type"
-            value={marketType}
-            onChange={(e) => setMarketType(e.target.value as MarketType)}
+            value={questionData.marketType}
+            onChange={(e) =>
+              updateField("marketType", e.target.value as MarketType)
+            }
             className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 border-gray-300 focus:ring-green-500`}
           >
             <option value="ALL">ALL</option>
@@ -289,25 +344,21 @@ export default function QuestionForm({
             id="group_question"
             type="text"
             placeholder="Group Question"
-            value={groupQuestion}
-            onChange={(e) => setGroupQuestion(e.target.value)}
+            value={questionData.groupQuestion}
+            onChange={(e) => updateField("groupQuestion", e.target.value)}
             className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2`}
           />
         </div>
 
+        {/* Question name */}
         <div>
-          <label
-            htmlFor="question_name"
-            className="block mb-1 font-medium text-gray-700"
-          >
-            Question name
+          <label className="block mb-1 font-medium text-gray-700">
+            Question Name
           </label>
           <input
-            id="question_name"
             type="text"
-            placeholder="Question Name"
-            value={questionName}
-            onChange={(e) => setQuestionName(e.target.value)}
+            value={questionData.questionName}
+            onChange={(e) => updateField("questionName", e.target.value)}
             className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 ${
               errors.questionName
                 ? "border-red-500 focus:ring-red-500"
@@ -318,7 +369,6 @@ export default function QuestionForm({
             <p className="text-red-600 text-sm mt-1">{errors.questionName}</p>
           )}
         </div>
-
         <div>
           <label
             htmlFor="symbol"
@@ -330,8 +380,8 @@ export default function QuestionForm({
             id="symbol"
             type="text"
             placeholder="Symbol"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
+            value={questionData.symbol}
+            onChange={(e) => updateField("symbol", e.target.value)}
             className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 ${
               errors.symbol
                 ? "border-red-500 focus:ring-red-500"
@@ -343,7 +393,7 @@ export default function QuestionForm({
           )}
         </div>
 
-        {category == "EARNINGS" && (
+        {questionData.category.includes("EARNINGS") && (
           <div>
             <label
               htmlFor="eps"
@@ -355,10 +405,10 @@ export default function QuestionForm({
               id="eps"
               type="text"
               placeholder="Eps"
-              value={eps}
-              onChange={(e) => setEps(e.target.value)}
+              value={questionData.eps}
+              onChange={(e) => updateField("eps", e.target.value)}
               className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 ${
-                errors.timeEnd
+                errors.eps
                   ? "border-red-500 focus:ring-red-500"
                   : "border-gray-300 focus:ring-green-500"
               }`}
@@ -369,18 +419,39 @@ export default function QuestionForm({
           </div>
         )}
 
+        {/* Rule market */}
         <div>
-          <label
-            htmlFor="timeEnd"
-            className="block mb-1 font-medium text-gray-700"
-          >
+          <label className="block mb-1 font-medium text-gray-700">
+            Rule Market
+          </label>
+          <textarea
+            value={questionData.ruleMarket}
+            onChange={(e) => updateField("ruleMarket", e.target.value)}
+            className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 ${
+              errors.ruleMarket
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-green-500"
+            }`}
+            rows={4}
+          />
+          {errors.ruleMarket && (
+            <p className="text-red-600 text-sm mt-1">{errors.ruleMarket}</p>
+          )}
+        </div>
+
+        {/* Time end */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
             Time End
           </label>
           <input
-            id="timeEnd"
             type="datetime-local"
-            value={timeEnd}
-            onChange={(e) => setTimeEnd(e.target.value)}
+            value={
+              questionData.timeEnd
+                ? convertToDatetimeLocal(questionData.timeEnd)
+                : ""
+            }
+            onChange={(e) => updateField("timeEnd", e.target.value)}
             className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 ${
               errors.timeEnd
                 ? "border-red-500 focus:ring-red-500"
@@ -389,30 +460,6 @@ export default function QuestionForm({
           />
           {errors.timeEnd && (
             <p className="text-red-600 text-sm mt-1">{errors.timeEnd}</p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="ruleMarket"
-            className="block mb-1 font-medium text-gray-700"
-          >
-            Rule Market
-          </label>
-          <textarea
-            id="ruleMarket"
-            rows={4}
-            placeholder="Enter the market rules"
-            value={ruleMarket}
-            onChange={(e) => setRuleMarket(e.target.value)}
-            className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 resize-y focus:outline-none focus:ring-2 ${
-              errors.ruleMarket
-                ? "border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:ring-green-500"
-            }`}
-          />
-          {errors.ruleMarket && (
-            <p className="text-red-600 text-sm mt-1">{errors.ruleMarket}</p>
           )}
         </div>
 
@@ -427,8 +474,8 @@ export default function QuestionForm({
             id="tags"
             type="text"
             placeholder="tag1, tag2"
-            value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
+            value={questionData.tags}
+            onChange={(e) => updateField("tags", e.target.value)}
             className={`w-full border px-4 py-3 rounded-md text-base text-gray-700 focus:outline-none focus:ring-2 ${
               errors.tags
                 ? "border-red-500 focus:ring-red-500"
@@ -440,24 +487,31 @@ export default function QuestionForm({
           )}
         </div>
 
+        {/* Logo */}
         <div>
-          <ImageUpload label="Question Logo" file={logo} onChange={setLogo} />
+          <ImageUpload
+            label="Question Logo"
+            file={questionData.logo}
+            previewUrl={questionData.logoUrl}
+            onChange={(f) => updateField("logo", f)}
+          />
           {errors.logo && (
             <p className="text-red-600 text-sm mt-1">{errors.logo}</p>
           )}
         </div>
 
+        {/* Answers */}
         <div className="space-y-5">
           {answers.map((a, i) => (
-            <div key={i}>
-              <AnswerForm
-                index={i}
-                data={a}
-                errors={errors.answers?.[i] || undefined}
-                onChange={(field, value) => updateAnswer(i, field, value)}
-                onRemove={() => removeAnswer(i)}
-              />
-            </div>
+            <AnswerForm
+              key={i}
+              index={i}
+              data={a}
+              category={questionData.category}
+              errors={errors.answers?.[i] || undefined}
+              onChange={(field, value) => updateAnswer(i, field, value)}
+              onRemove={() => removeAnswer(i)}
+            />
           ))}
         </div>
 
@@ -465,20 +519,35 @@ export default function QuestionForm({
           <button
             type="button"
             onClick={addAnswer}
-            className="flex-grow bg-white border border-gray-300 text-gray-700 font-semibold rounded-md px-6 py-3 hover:bg-gray-100 transition"
+            className="flex-grow bg-gray-200 text-gray-700 font-semibold rounded-md px-6 py-3 hover:bg-gray-300 transition"
           >
             Add Answer
           </button>
-
           <button
             type="submit"
             disabled={loading}
             className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50"
           >
-            {loading ? "Submitting..." : "Submit"}
+            {loading ? "Submitting..." : mode === "edit" ? "Update" : "Create"}
           </button>
         </div>
       </div>
     </form>
   );
+}
+function convertToDatetimeLocal(isoString: string) {
+  // Tạo đối tượng Date từ chuỗi ISO
+  const date = new Date(isoString);
+
+  // Lấy các thành phần
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Tháng từ 0-11
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
+
+  // Nếu muốn mili-giây: ":ss.SSS", hoặc chỉ ":ss"
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
