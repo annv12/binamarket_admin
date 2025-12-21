@@ -12,7 +12,7 @@ type ModalState =
   | { open: false }
   | { open: true; mode: "create" | "edit"; data?: Question };
 
-const LIMIT = 2;
+const LIMIT = 20;
 
 export default function Page() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -97,7 +97,7 @@ export default function Page() {
       {/* Search */}
       <input
         placeholder="Search..."
-        className="w-full rounded-xl px-5 py-3 text-gray-800"
+        className="w-full bg-white rounded-xl px-5 py-3 text-gray-800"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
