@@ -149,7 +149,6 @@ export default function QuestionForm({
       newErrors.ruleMarket = "Rule Market is required";
     if (!questionData.logo && !questionData.logoUrl)
       newErrors.logo = "Logo required";
-    if (questionData.volume < 0) newErrors.volume = "Volume must >= 0";
 
     if (questionData.category.includes("EARNINGS")) {
       if (!questionData.eps.trim() || questionData.eps == "0")
@@ -385,7 +384,7 @@ export default function QuestionForm({
           )}
         </div>
 
-        <div>
+        {/* <div>
           <label className="block mb-1 font-medium text-gray-700">Volume</label>
           <input
             type="number"
@@ -400,7 +399,7 @@ export default function QuestionForm({
           {errors?.volume && (
             <p className="text-red-600 text-sm mt-1">{errors.volume}</p>
           )}
-        </div>
+        </div> */}
 
         <div>
           <label
