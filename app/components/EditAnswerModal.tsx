@@ -50,7 +50,7 @@ export default function EditAnswerModal({
       if (answer.no <= 0) e.no = "'No' must > 0";
       if (answer.m <= 0) e.m = "'M' must > 0";
       if (answer.volume <= 0) e.volume= "volume must >= 0";
-      if (answer.priceCheck && answer.priceCheck <= 0)
+      if (answer.priceCheck && answer.priceCheck < 0)
         e.priceCheck = "Price check must > 0";
       if (Object.keys(e).length > 0) {
         setError(e);
